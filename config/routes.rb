@@ -10,5 +10,8 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  root "dashboard#index"
+  root "plaid#index"
+  post "plaid/create_link_token", to: "plaid#create_link_token"
+  post "plaid/exchange_public_token", to: "plaid#exchange_public_token"
+  get "plaid/get_balance", to: "plaid#get_balance"
 end
