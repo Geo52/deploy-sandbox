@@ -61,15 +61,15 @@
       };
 
        //   Check whether account is connected
-      const getStatus = async function () {
-        const account = await fetch("/plaid/is_account_connected");
-        const connected = await account.json();
-        if (connected.status == true) {
-          getBalance();
-        }
-      };
+      // const getStatus = async function () {
+      //   const account = await fetch("/plaid/is_account_connected");
+      //   const connected = await account.json();
+      //   if (connected.status == true) {
+      //     getBalance();
+      //   }
+      // };
 
-      getStatus();
+      // getStatus();
 
     })
 </script>
