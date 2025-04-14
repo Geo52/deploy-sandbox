@@ -28,7 +28,7 @@
                 "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
             },
             });
-            // await getBalance();
+            await getBalance();
         },
         onEvent: (eventName, metadata) => {
             console.log("Event:", eventName);
@@ -45,9 +45,34 @@
              handler.open();
         });
 
+      // Retrieves balance information
+      const getBalance = async function () {
+        const response = await fetch("/plaid/get_balance", {
+          method: "GET",
+          headers: {
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+          }
+        });
+        const data = await response.json();
+        // Render response data
+        const pre = document.getElementById("response");
+        pre.textContent = JSON.stringify(data, null, 2);
+        pre.style.background = "#F6F6F6";
+      };
+
+       //   Check whether account is connected
+      const getStatus = async function () {
+        const account = await fetch("/plaid/is_account_connected");
+        const connected = await account.json();
+        if (connected.status == true) {
+          getBalance();
+        }
+      };
+
+      getStatus();
+
     })
 </script>
-
 <button type="button" id="link-account">
     <strong>Link account</strong>
 </button>

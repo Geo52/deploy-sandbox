@@ -14,4 +14,5 @@ Rails.application.routes.draw do
   post "plaid/create_link_token", to: "plaid#create_link_token"
   post "plaid/exchange_public_token", to: "plaid#exchange_public_token"
   get "plaid/get_balance", to: "plaid#get_balance"
+  get "plaid/is_account_connected", to: "plaid#is_account_connected"
 end

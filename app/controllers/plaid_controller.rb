@@ -33,4 +33,31 @@ class PlaidController < ApplicationController
 
     render json: { success: true }
   end
+
+  def get_balance
+    access_token = session[:plaid_access_token]
+
+      request = Plaid::AccountsBalanceGetRequest.new(
+        access_token: access_token
+      )
+
+      balance_response = PlaidClient.accounts_balance_get(request)
+
+      render json: {
+        Balance: {
+          accounts: balance_response.accounts,
+          item: balance_response.item
+        }
+      }
+  end
+
+  def is_account_connected
+    access_token = session[:plaid_access_token]
+
+    if access_token.present?
+      render json: { status: true }
+    else
+      render json: { status: false }
+    end
+  end
 end
