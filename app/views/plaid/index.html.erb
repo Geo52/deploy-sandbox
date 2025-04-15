@@ -22,46 +22,46 @@
 
       // Fetch 1 dummy transaction after linking
       const getTransaction = async function () {
-  const res = await fetch("/plaid/one_transaction");
-  const data = await res.json();
+        const res = await fetch("/plaid/one_transaction");
+        const data = await res.json();
 
-  const txDiv = document.getElementById("transaction");
+        const txDiv = document.getElementById("transaction");
 
-  // Basic error handling if API failed
-  if (data.error) {
-    txDiv.textContent = "⚠️ Failed to load transaction.";
-    return;
-  }
+        // Basic error handling if API failed
+        if (data.error) {
+          txDiv.textContent = "⚠️ Failed to load transaction.";
+          return;
+        }
 
-  // Format into clean HTML
-  txDiv.innerHTML = `
-    🧾 <strong>${data.name}</strong><br>
-    💸 $${data.amount.toFixed(2)}<br>
-    📅 ${data.date}
-  `;
-};
+        // Format into clean HTML
+        txDiv.innerHTML = `
+          🧾 <strong>${data.name}</strong><br>
+          💸 $${data.amount.toFixed(2)}<br>
+          📅 ${data.date}
+        `;
+      };
 
-//monthly expenses!!!!!!!---------------------------------------------------------------
-  const getMonthlyExpenses = async () => {
-  const res = await fetch("/plaid/monthly_expenses");
-  const data = await res.json(); 
+      // Monthly expenses
+      const getMonthlyExpenses = async () => {
+        const res = await fetch("/plaid/monthly_expenses");
+        const data = await res.json(); 
 
-  const txDiv = document.getElementById("transaction");
-  if (data.error) {
-    txDiv.textContent = "⚠️ Failed to load expenses."; //error message
-    return;
-  }
+        const txDiv = document.getElementById("transaction");
+        if (data.error) {
+          txDiv.textContent = "⚠️ Failed to load expenses.";
+          return;
+        }
 
-  txDiv.innerHTML = "<h3>📅 Monthly Expenses (Last 4 Months)</h3><ul>"; //making it look nice and neat
+        txDiv.innerHTML = "<h3>📅 Monthly Expenses (Last 4 Months)</h3><ul>";
 
-  for (const [month, amount] of Object.entries(data)) {
-    txDiv.innerHTML += `<li><strong>${month}:</strong> 💸 $${amount.toFixed(2)}</li>`;
-  }
+        for (const [month, amount] of Object.entries(data)) {
+          txDiv.innerHTML += `<li><strong>${month}:</strong> 💸 $${amount.toFixed(2)}</li>`;
+        }
 
-  txDiv.innerHTML += "</ul>";
-};
+        txDiv.innerHTML += "</ul>";
+      };
 
-// Show monthly incomes
+      // Show monthly incomes
       const getMonthlyIncomes = async () => {
         const res = await fetch("/plaid/monthly_income");
         const data = await res.json();
@@ -79,6 +79,23 @@
         }
 
         txDiv.innerHTML += "</ul>";
+      };
+
+      // Fetch and display net worth
+      const getNetWorth = async () => {
+        const res = await fetch("/plaid/net_worth");
+        const data = await res.json();
+
+        const txDiv = document.getElementById("transaction");
+        if (data.error) {
+          txDiv.textContent = "⚠️ Failed to load net worth.";
+          return;
+        }
+
+        txDiv.innerHTML = `
+          <h3>💰 Net Worth</h3>
+          <p><strong>Total:</strong> $${data.net_worth.toFixed(2)}</p>
+        `;
       };
 
       // Initialize Plaid Link
@@ -106,19 +123,22 @@
 
       const showExpensesButton = document.getElementById("show-expenses");
       showExpensesButton.addEventListener("click", () => {
-        getMonthlyExpenses(); // Calls your function ONLY AFTER account is linked
-});
+        getMonthlyExpenses();
+      });
 
-  // Button: Show Incomes
-  const showIncomesButton = document.getElementById("show-incomes");
-  showIncomesButton.addEventListener("click", () => {
-    getMonthlyIncomes();
-    });
+      // Button: Show Incomes
+      const showIncomesButton = document.getElementById("show-incomes");
+      showIncomesButton.addEventListener("click", () => {
+        getMonthlyIncomes();
+      });
 
+      // Button: Show Net Worth
+      const showNetWorthButton = document.getElementById("show-net-worth");
+      showNetWorthButton.addEventListener("click", () => {
+        getNetWorth();
+      });
 
-      //getting balance
-      //this was old code just used to display a dummy, "legacy code"??
-      //variable to begin learning the ropes
+      // Getting balance
       const getBalance = async function () {
         const response = await fetch("/plaid/get_balance", {
           method: "GET",
@@ -166,12 +186,13 @@
     <strong>Show Monthly Expenses</strong>
   </button>
 
-  <!-- start of the creation of the buttone for income-->
   <button type="button" id="show-incomes"> 
     <strong>Show Monthly Incomes</strong>
   </button>
 
-
+  <button type="button" id="show-net-worth">
+    <strong>Show Net Worth</strong>
+  </button>
 
   <div id="transaction" style="padding: 20px; font-size: 16px;"></div>
 
