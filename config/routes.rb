@@ -1,18 +1,19 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
-  get "up" => "rails/health#show", as: :rails_health_check
-
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
-
-  # Defines the root path route ("/")
+  # root "dashboard#index"
   root "plaid#index"
   post "plaid/create_link_token", to: "plaid#create_link_token"
   post "plaid/exchange_public_token", to: "plaid#exchange_public_token"
   get "plaid/get_balance", to: "plaid#get_balance"
-  get "plaid/is_account_connected", to: "plaid#is_account_connected"
+
+
+  # Route to hit when we want to fetch a single transaction after linking (used in dummy retrieval single variable)
+  get "plaid/one_transaction", to: "plaid#one_transaction"
+
+  # This line VVV connects the URL /plaid/monthly_expenses to the method below
+  get "plaid/monthly_expenses", to: "plaid#monthly_expenses"
+
+  get 'plaid/monthly_income', to: 'plaid#monthly_income'
+  #this means only respond to get requests
+  #'plaid/monthly_income' is a url path, route gets triggered if someone visits: /plaid/monthly_income
+  #to: 'plaid#monthly_income' ---> controller#method in that controlelr to trigger
 end
