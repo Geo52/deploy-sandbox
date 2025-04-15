@@ -14,7 +14,7 @@ class PlaidController < ApplicationController
     request = Plaid::LinkTokenCreateRequest.new({
       user: { client_user_id: session.id.to_s },
       client_name: "Your App Name",
-      products: [ "auth", "transactions" ], 
+      products: [ "auth", "transactions" ],
       country_codes: [ "US" ],
       language: "en"
   })
@@ -75,40 +75,65 @@ class PlaidController < ApplicationController
       end
     end
 
-    #code to retrieve simple dummy data--------------------------------
-    
+    def net_worth
+      access_token = session[:plaid_access_token]
+
+      if access_token.nil?
+        render json: { error: "No access token found" }, status: :bad_request
+        return
+      end
+
+      begin
+        request = Plaid::AccountsBalanceGetRequest.new(
+          access_token: access_token
+        )
+
+        balance_response = PlaidClient.accounts_balance_get(request)
+
+        net_worth = balance_response.accounts.sum { |account| account.balances.current || 0 }
+
+        render json: { net_worth: net_worth }
+      rescue Plaid::ApiError => e
+        Rails.logger.error "Plaid API error: #{e.response_body}"
+        error_response = JSON.parse(e.response_body)
+        render json: { error: error_response }, status: :bad_request
+      end
+    end
+
+    # code to retrieve simple dummy data--------------------------------
+
     def one_transaction
       # Grab the access token from session (set during public_token exchange)
       access_token = session[:plaid_access_token]
-    
+
       # If we don't have one, return an error
       return render json: { error: "No access token" }, status: 400 unless access_token
-    
+
       # Set date range: start 30 days ago to today
       start_date = 30.days.ago.to_date.to_s
       end_date = Date.today.to_s
-    
+
       # Create a request object to hit Plaid's /transactions/get endpoint
       request = Plaid::TransactionsGetRequest.new(
         access_token: access_token,
         start_date: start_date,
         end_date: end_date
       )
-    
+
       begin
         # Call Plaid's API to fetch transactions using our client
         response = PlaidClient.transactions_get(request)
-    
+
         # Pull the first transaction from the list
         tx = response.transactions.first
-    
+
         # Send back name, amount, and date only (cleaned-up)
         render json: {
           name: tx.name,       # e.g. "Uber"
           amount: tx.amount,   # e.g. 12.34
           date: tx.date        # e.g. "2023-12-15"
         }
-    
+
       rescue Plaid::ApiError => e
         # If something goes wrong, return the Plaid error message
         render json: { error: JSON.parse(e.response_body) }, status: 400
@@ -117,12 +142,12 @@ class PlaidController < ApplicationController
 
 
     #--------------------------------------------------------------------------------------------------------
-    ##-----------------------------------------------------------------------
-    ##-----------------------------------------------------------------------
-    #serious code to get monthly expenses
-    #indeed, there is a lot of built in methods with plaid and ruby
-    #like month(s) dates request data from plaid logic etc
-    
+    # #-----------------------------------------------------------------------
+    # #-----------------------------------------------------------------------
+    # serious code to get monthly expenses
+    # indeed, there is a lot of built in methods with plaid and ruby
+    # like month(s) dates request data from plaid logic etc
+
 
     def monthly_expenses
   # Step 1: Get the access token for the user's linked bank account
@@ -139,8 +164,8 @@ class PlaidController < ApplicationController
   # this is a plaid API request OBJECT
   request = Plaid::TransactionsGetRequest.new(
     access_token: access_token,
-    start_date: start_date.to_s, #to string 
-    end_date: end_date.to_s #to string since plaid needs dates as xx-xx-xxxx
+    start_date: start_date.to_s, # to string
+    end_date: end_date.to_s # to string since plaid needs dates as xx-xx-xxxx
   )
 
   begin
@@ -187,7 +212,7 @@ class PlaidController < ApplicationController
 end
 
 def monthly_income
-  #get access token for users linked acount
+  # get access token for users linked acount
   access_token = session[:plaid_access_token]
 
   # If no token was saved during linking, return an error
@@ -196,20 +221,20 @@ def monthly_income
   start_date = 4.months.ago.beginning_of_month.to_date
   end_date = Date.today
 
-  #"go look inside plaid/aka in gem file to get new instance of..." with the relevant params
+  # "go look inside plaid/aka in gem file to get new instance of..." with the relevant params
   request = Plaid::TransactionsGetRequest.new(
     access_token: access_token,
     start_date: start_date.to_s,
     end_date: end_date.to_s
   )
 
-  begin #part of begin, rescure error handling
+  begin # part of begin, rescure error handling
 
-    #get the response with all the transactions
-    #PlaidClient = class/object provided by gem file
-    #transactions_get = method to request transaction data
-    #request holds all the required parameters to do so 
-    response = PlaidClient.transactions_get(request) 
+    # get the response with all the transactions
+    # PlaidClient = class/object provided by gem file
+    # transactions_get = method to request transaction data
+    # request holds all the required parameters to do so
+    response = PlaidClient.transactions_get(request)
     transactions = response.transactions
 
     jan_income = 0
@@ -221,14 +246,14 @@ def monthly_income
     # transactions is an array containing all transaction info
     transactions.each do |tx|
       # Only count income (negative amounts are typically income)
-      next unless tx.amount < 0 #skip this tranaction unless ammount is negative
+      next unless tx.amount < 0 # skip this tranaction unless ammount is negative
 
-      tx_month = tx.date.month #.month extracts numerical val of month
-      #helps categoize into correct month
+      tx_month = tx.date.month # .month extracts numerical val of month
+      # helps categoize into correct month
 
-      #check which month the tranaxtion occured in 
+      # check which month the tranaxtion occured in
       if tx_month == 1
-        jan_income += tx.amount.abs #jan income += this transaction ammount (absolute value)
+        jan_income += tx.amount.abs # jan income += this transaction ammount (absolute value)
       elsif tx_month == 2
         feb_income += tx.amount.abs
       elsif tx_month == 3
@@ -247,17 +272,17 @@ def monthly_income
       "April" => apr_income
     }
 
-  rescue Plaid::ApiError => e #to handle errors
-    #store error details in e and send to user/front end
+  rescue Plaid::ApiError => e # to handle errors
+    # store error details in e and send to user/front end
     render json: { error: JSON.parse(e.response_body) }, status: 400
   end
 end
 end
 
 
-#below is just primitive logic/exposure I wished to follow
-#in exploring these options along with the Plaid docs
-#we learn the critical parts/syntax etc that speaks plaid
+# below is just primitive logic/exposure I wished to follow
+# in exploring these options along with the Plaid docs
+# we learn the critical parts/syntax etc that speaks plaid
 
 # Step 1: Get a test (sandbox) access token
 # access_token = get_sandbox_access_token() //this is from plaid
@@ -290,7 +315,7 @@ end
 # Step 6: Print or return the totals
 # return {
 #     month1: [income, expenses],
-#     month 2. . . 
+#     month 2. . .
 # }
 
 =begin
@@ -307,11 +332,11 @@ end
       # This connects to Plaid's /transactions/get API
       response = PlaidClient.transactions.get(access_token, start_date, end_date). #syntax to be studied
 
-      #Step 4: Get/retrieve the list of transactions 
+      #Step 4: Get/retrieve the list of transactions
       transactions = response.transactions
-      # plaid gives us info in an array 
+      # plaid gives us info in an array
 
-      #Step 5: Make regular variables to store monthly summations 
+      #Step 5: Make regular variables to store monthly summations
       month1_income = 0.0
       month1_expenses = 0.0
       month2_income = 0.0
@@ -322,13 +347,13 @@ end
       #Step 6: Loop through each transaction and classify it
       #we use conditionals for each month to sort by expense or income
 
- transactions.each do |tx| #where transactions are trans. objects gotten eariler from plaid 
+ transactions.each do |tx| #where transactions are trans. objects gotten eariler from plaid
 
- tx_month = tx.date.month #.month returns the month number, like 4 
+ tx_month = tx.date.month #.month returns the month number, like 4
         tx_amount = tx.amount
 
         if tx_month == 3.months.ago.month
-          if tx_amount < 0   tx.transaction_type == 'income' #sometimes checks are treated as negative values 
+          if tx_amount < 0   tx.transaction_type == 'income' #sometimes checks are treated as negative values
             month1_income += tx_amount.abs #absolute value
           else
             month1_expenses += tx_amount
