@@ -1,7 +1,12 @@
-<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
-<script>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Plaid | Rails Quickstart</title>
+  <%= csrf_meta_tags %>
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <script>
     document.addEventListener('DOMContentLoaded', async () => {
-        const createLinkToken = async () => {
+      const createLinkToken = async () => {
         const res = await fetch("/plaid/create_link_token", {
           method: "POST",
           headers: {
@@ -10,42 +15,110 @@
           }
         });
         const data = await res.json();
-        console.log(JSON.stringify(data));
         const linkToken = data.link_token;
-        localStorage.setItem("link_token", linkToken); // for Oauth
+        localStorage.setItem("link_token", linkToken);
         return linkToken;
       };
 
-      // Initialize Link
-        const handler = Plaid.create({
+      // Fetch 1 dummy transaction after linking
+      const getTransaction = async function () {
+  const res = await fetch("/plaid/one_transaction");
+  const data = await res.json();
+
+  const txDiv = document.getElementById("transaction");
+
+  // Basic error handling if API failed
+  if (data.error) {
+    txDiv.textContent = "⚠️ Failed to load transaction.";
+    return;
+  }
+
+  // Format into clean HTML
+  txDiv.innerHTML = `
+    🧾 <strong>${data.name}</strong><br>
+    💸 $${data.amount.toFixed(2)}<br>
+    📅 ${data.date}
+  `;
+};
+
+//monthly expenses!!!!!!!---------------------------------------------------------------
+  const getMonthlyExpenses = async () => {
+  const res = await fetch("/plaid/monthly_expenses");
+  const data = await res.json(); 
+
+  const txDiv = document.getElementById("transaction");
+  if (data.error) {
+    txDiv.textContent = "⚠️ Failed to load expenses."; //error message
+    return;
+  }
+
+  txDiv.innerHTML = "<h3>📅 Monthly Expenses (Last 4 Months)</h3><ul>"; //making it look nice and neat
+
+  for (const [month, amount] of Object.entries(data)) {
+    txDiv.innerHTML += `<li><strong>${month}:</strong> 💸 $${amount.toFixed(2)}</li>`;
+  }
+
+  txDiv.innerHTML += "</ul>";
+};
+
+// Show monthly incomes
+      const getMonthlyIncomes = async () => {
+        const res = await fetch("/plaid/monthly_income");
+        const data = await res.json();
+
+        const txDiv = document.getElementById("transaction");
+        if (data.error) {
+          txDiv.textContent = "⚠️ Failed to load incomes.";
+          return;
+        }
+
+        txDiv.innerHTML = "<h3>📅 Monthly Incomes (Last 4 Months)</h3><ul>";
+
+        for (const [month, amount] of Object.entries(data)) {
+          txDiv.innerHTML += `<li><strong>${month}:</strong> 💰 $${amount.toFixed(2)}</li>`;
+        }
+
+        txDiv.innerHTML += "</ul>";
+      };
+
+      // Initialize Plaid Link
+      const handler = Plaid.create({
         token: await createLinkToken(),
         onSuccess: async (publicToken, metadata) => {
-            await fetch("/plaid/exchange_public_token", {
+          await fetch("/plaid/exchange_public_token", {
             method: "POST",
             body: JSON.stringify({ public_token: publicToken }),
             headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+              "Content-Type": "application/json",
+              "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
             },
-            });
-            await getBalance();
-        },
-        onEvent: (eventName, metadata) => {
-            console.log("Event:", eventName);
-            console.log("Metadata:", metadata);
-        },
-        onExit: (error, metadata) => {
-            console.log(error, metadata);
-        },
-        });
+          });
 
-        // Start Link when button is clicked
-        const linkAccountButton = document.getElementById("link-account");
-            linkAccountButton.addEventListener("click", (event) => {
-             handler.open();
-        });
+          //await getTransaction(); //Replace balance with transaction
+        }
+      });
 
-      // Retrieves balance information
+      // Open Link when button is clicked
+      const linkAccountButton = document.getElementById("link-account");
+      linkAccountButton.addEventListener("click", (event) => {
+        handler.open();
+      });
+
+      const showExpensesButton = document.getElementById("show-expenses");
+      showExpensesButton.addEventListener("click", () => {
+        getMonthlyExpenses(); // Calls your function ONLY AFTER account is linked
+});
+
+  // Button: Show Incomes
+  const showIncomesButton = document.getElementById("show-incomes");
+  showIncomesButton.addEventListener("click", () => {
+    getMonthlyIncomes();
+    });
+
+
+      //getting balance
+      //this was old code just used to display a dummy, "legacy code"??
+      //variable to begin learning the ropes
       const getBalance = async function () {
         const response = await fetch("/plaid/get_balance", {
           method: "GET",
@@ -54,27 +127,53 @@
           }
         });
         const data = await response.json();
-        // Render response data
         const pre = document.getElementById("response");
         pre.textContent = JSON.stringify(data, null, 2);
         pre.style.background = "#F6F6F6";
       };
-
-       //   Check whether account is connected
-      // const getStatus = async function () {
-      //   const account = await fetch("/plaid/is_account_connected");
-      //   const connected = await account.json();
-      //   if (connected.status == true) {
-      //     getBalance();
-      //   }
-      // };
-
-      // getStatus();
-
-    })
-</script>
-<button type="button" id="link-account">
+    });
+  </script>
+  <style>
+    #response {
+      top: 60px;
+      margin-left: 10px;
+      bottom: 0;
+      position: fixed;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      font-size: 14px;
+      padding: 10px;
+    }
+    #link-account {
+      padding: 10px 15px;
+      background-color: #212529;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 15px;
+    }
+  </style>
+</head>
+<body>
+<% @banks %>
+  <button type="button" id="link-account">
     <strong>Link account</strong>
-</button>
+  </button>
 
-<pre id="response"></pre>
+  <button type="button" id="show-expenses"> 
+    <strong>Show Monthly Expenses</strong>
+  </button>
+
+  <!-- start of the creation of the buttone for income-->
+  <button type="button" id="show-incomes"> 
+    <strong>Show Monthly Incomes</strong>
+  </button>
+
+
+
+  <div id="transaction" style="padding: 20px; font-size: 16px;"></div>
+
+</body>
+</html>
