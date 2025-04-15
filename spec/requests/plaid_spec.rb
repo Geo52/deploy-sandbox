@@ -12,3 +12,16 @@ RSpec.describe "Plaid Monthly Expenses", type: :request do
     end
   end
 end
+
+
+RSpec.describe "Plaid Monthly Income", type: :request do
+  describe "GET /plaid/monthly_income" do
+    it "returns an error if no access token is present" do
+      #mock a GET request to the endpoint (no session/token set)
+      get "/plaid/monthly_income"
+
+      # We expect a 400 Bad Request since token is missing
+      expect(response).to have_http_status(:bad_request)
+    end
+  end
+end
