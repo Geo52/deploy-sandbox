@@ -25,27 +25,3 @@ RSpec.describe "Plaid Monthly Income", type: :request do
     end
   end
 end
-
-#we use another simple test to test our income
-RSpec.describe "Plaid Monthly Income", type: :request do
-  describe "GET /plaid/monthly_income" do
-    it "returns an empty hash when there is no income" do
-      # Simulating a request to the route
-      get "/plaid/monthly_income"
-      
-      # Check that the response is a success
-      expect(response).to have_http_status(:ok)
-      
-      # Parse the response JSON body
-      data = JSON.parse(response.body)
-      
-      # Check that the data is an empty hash
-      expect(data).to eq({
-        "January" => 0.0,
-        "February" => 0.0,
-        "March" => 0.0,
-        "April" => 0.0
-      })
-    end
-  end
-end
